@@ -41,6 +41,6 @@ jobs:
       - name: Run Pytest
         env:
           SECRET_KEY: "ci_pipeline_dummy_secret_key_for_testing_only"
-          DATABASE_URL: "postgresql+asyncpg://postgres:postgrespassword@localhost:5432/fastapi_db"
+          DATABASE_URL: "postgresql+asyncpg://dummyuser:dummypassword@localhost:5432/statusforge_db"
         run: |
           pytest
