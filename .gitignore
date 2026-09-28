@@ -1,0 +1,35 @@
+# Virtual Environments
+env/
+venv/
+.venv/
+ENV/
+
+# Environment Variables & Secrets
+.env
+*.env
+!.env.example
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+
+# Local Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE & OS Settings
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Node.js
+node_modules/
+.next/
+
+# Docker
+docker-compose.override.yml
