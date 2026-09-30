@@ -1,4 +1,4 @@
-# StatusForge
+﻿# StatusForge
 
 A lightweight public status-page and incident communication platform for small SaaS products and teams.
 
@@ -27,18 +27,18 @@ StatusForge is **not**:
 
 ## Architecture
 
-\\\
+```text
 Frontend (Next.js) 
-      �
-      ?
-FastAPI Backend --? PostgreSQL (Primary Data Store)
-      �
-      ?
+      │
+      ▼
+FastAPI Backend ──▶ PostgreSQL (Primary Data Store)
+      │
+      ▼
     Redis
-      �
-      ?
-ARQ Background Worker --? Email Provider (Resend)
-\\\
+      │
+      ▼
+ARQ Background Worker ──▶ Email Provider (Resend)
+```
 
 ## Local Development Setup
 
@@ -49,22 +49,23 @@ ARQ Background Worker --? Email Provider (Resend)
 
 ### 1. Start the Backend Infrastructure
 
-\\\ash
+```bash
 # Clone the repository
-git clone https://github.com/yourusername/statusforge.git
+git clone https://github.com/MohammadAsadIbnaIqbal/statusforge.git
 cd statusforge
 
 # Start PostgreSQL, Redis, FastAPI, and ARQ worker
 docker-compose up --build -d
-\\\
+```
 
 ### 2. Start the Frontend
 
-\\\ash
+```bash
 cd frontend
 npm install
 npm run dev
-\\\
+```
+
 The application will be available at:
 - Frontend: http://localhost:3000
 - Backend API Docs: http://localhost:8000/docs
@@ -72,52 +73,53 @@ The application will be available at:
 ## Environment Configuration
 
 Copy the example configuration files and adjust if necessary:
-\\\ash
+```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
-\\\
+```
 
 ### Backend Environment Variables
+
 | Variable | Description |
 |----------|-------------|
-| \SECRET_KEY\ | A strong random string for JWT signing. |
-| \DATABASE_URL\ | PostgreSQL connection string. |
-| \REDIS_URL\ | Redis connection string. |
-| \ALLOWED_ORIGINS\ | CORS origins (e.g. \http://localhost:3000\). |
-| \APP_URL\ | The base URL of the backend API. |
-| \NOTIFICATION_MODE\ | \log\ (default) or \live\. |
-| \EMAIL_PROVIDER_API_KEY\ | Resend API Key (required for \live\ mode). |
-| \EMAIL_SENDER\ | The "From" email address. |
+| `SECRET_KEY` | A strong random string for JWT signing. |
+| `DATABASE_URL` | PostgreSQL connection string. |
+| `REDIS_URL` | Redis connection string. |
+| `ALLOWED_ORIGINS` | CORS origins (e.g. `http://localhost:3000`). |
+| `APP_URL` | The base URL of the backend API. |
+| `NOTIFICATION_MODE` | `log` (default) or `live`. |
+| `EMAIL_PROVIDER_API_KEY` | Resend API Key (required for `live` mode). |
+| `EMAIL_SENDER` | The "From" email address. |
 
 ## Notifications
 
-StatusForge supports two notification modes, controlled by \NOTIFICATION_MODE\:
+StatusForge supports two notification modes, controlled by `NOTIFICATION_MODE`:
 
-1. **\log\ (Default)**: Emulates sending emails by logging the payload and recipient to the console. Perfect for local development.
-2. **\live\**: Sends real emails via Resend. Requires \EMAIL_PROVIDER_API_KEY\ to be configured.
+1. **`log` (Default)**: Emulates sending emails by logging the payload and recipient to the console. Perfect for local development.
+2. **`live`**: Sends real emails via Resend. Requires `EMAIL_PROVIDER_API_KEY` to be configured.
 
 ## Testing
 
 **Backend** (Requires a running local database and Redis):
-\\\ash
+```bash
 cd backend
 python -m venv venv
 source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
 pytest tests
-\\\
+```
 
 **Frontend**:
-\\\ash
+```bash
 cd frontend
 npm run test
-\\\
+```
 
 ## Deployment Guidance
 
 StatusForge is designed to be fully deployable on free-tier infrastructure for small teams:
 
-- **Frontend**: Deploy to **Vercel** or **Netlify**. Ensure \NEXT_PUBLIC_API_URL\ points to your backend production URL.
+- **Frontend**: Deploy to **Vercel** or **Netlify**. Ensure `NEXT_PUBLIC_API_URL` points to your backend production URL.
 - **Backend**: Deploy the FastAPI app and the ARQ worker as two separate services on **Render** or **Railway**. Both services should use the exact same environment variables.
 - **Database**: Use **Supabase** or **Neon** for free-tier managed PostgreSQL.
 - **Redis**: Use **Upstash** for free-tier managed serverless Redis.
