@@ -73,11 +73,11 @@ def upgrade() -> None:
     op.add_column('user', sa.Column('updated_at', sa.DateTime(), nullable=True))
 
     # 3. Backfill data deterministically
-    op.execute("UPDATE user SET organization_name = username || '''s Organization' WHERE organization_name IS NULL")
-    op.execute("UPDATE user SET organization_slug = username || '-org' WHERE organization_slug IS NULL")
-    op.execute("UPDATE user SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
-    op.execute("UPDATE user SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL")
-    op.execute("UPDATE user SET email = username || '@example.com' WHERE email IS NULL")
+    op.execute("UPDATE \"user\" SET organization_name = username || '''s Organization' WHERE organization_name IS NULL")
+    op.execute("UPDATE \"user\" SET organization_slug = username || '-org' WHERE organization_slug IS NULL")
+    op.execute("UPDATE \"user\" SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
+    op.execute("UPDATE \"user\" SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL")
+    op.execute("UPDATE \"user\" SET email = username || '@example.com' WHERE email IS NULL")
 
     # 4. Enforce NOT NULL constraints using batch mode
     with op.batch_alter_table('user', schema=None) as batch_op:
