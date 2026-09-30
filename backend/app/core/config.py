@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     APP_URL: str = "http://localhost:8000"
     NOTIFICATION_MODE: str = "log"
     EMAIL_PROVIDER_API_KEY: Optional[str] = None
+    EMAIL_SENDER: str = "StatusForge <onboarding@resend.dev>"
 
     # Automatically reads from .env in the root directory
     model_config = SettingsConfigDict(

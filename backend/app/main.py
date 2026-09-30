@@ -19,7 +19,7 @@ from sqlmodel import select
 
 from app.core.config import settings
 from app.core.database import engine
-from app.routers import auth, products
+from app.routers import auth, services, incidents, public_status, subscribers
 from app.worker import WorkerSettings  
 
 if settings.SENTRY_DSN:
@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
             functions=WorkerSettings.functions,
             redis_settings=WorkerSettings.redis_settings
         )
-        asyncio.create_task(worker.async_run())
+        # asyncio.create_task(worker.async_run())
         logger.info("Embedded ARQ Background Worker started successfully.")
     except Exception as e:
         logger.warning(f"Failed to start embedded ARQ Worker: {e}")
@@ -115,4 +115,7 @@ async def health_check():
 
 # Include Routers
 app.include_router(auth.router)
-app.include_router(products.router)
+app.include_router(services.router)
+app.include_router(incidents.router)
+app.include_router(public_status.router)
+app.include_router(subscribers.router)
