@@ -28,16 +28,16 @@ StatusForge is **not**:
 ## Architecture
 
 ```text
-Frontend (Next.js) 
+Frontend (Vercel / Next.js)
       │
       ▼
-FastAPI Backend ──▶ PostgreSQL (Primary Data Store)
+FastAPI Backend (Render Web Service) ──▶ Supabase PostgreSQL (Primary Data)
       │
       ▼
-    Redis
+   Embedded ARQ Worker ──▶ Email Provider (Resend)
       │
       ▼
-ARQ Background Worker ──▶ Email Provider (Resend)
+ Render Key Value (Redis)
 ```
 
 ## Local Development Setup
@@ -103,8 +103,8 @@ StatusForge supports two notification modes, controlled by `NOTIFICATION_MODE`:
 **Backend** (Requires a running local database and Redis):
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 pip install -r requirements.txt
 pytest tests
 ```
@@ -117,12 +117,15 @@ npm run test
 
 ## Deployment Guidance
 
-StatusForge is designed to be fully deployable on free-tier infrastructure for small teams:
+StatusForge is designed to be fully deployable on free-tier infrastructure for small portfolio projects and teams.
 
-- **Frontend**: Deploy to **Vercel** or **Netlify**. Ensure `NEXT_PUBLIC_API_URL` points to your backend production URL.
-- **Backend**: Deploy the FastAPI app and the ARQ worker as two separate services on **Render** or **Railway**. Both services should use the exact same environment variables.
-- **Database**: Use **Supabase** or **Neon** for free-tier managed PostgreSQL.
-- **Redis**: Use **Upstash** for free-tier managed serverless Redis.
-- **Email**: Use **Resend** (free tier includes 3,000 emails/month). 
+**Important:** This is a lightweight monolithic deployment architecture. It does not claim high availability, guaranteed delivery, zero-downtime deployment, or enterprise-scale distributed worker infrastructure. The embedded background worker is highly cost-effective but is not equivalent to a dedicated fault-tolerant worker service.
 
-*Note: Redis is required for background workers, but the public API will gracefully degrade if the Redis cache is temporarily unavailable.*
+- **Frontend**: Deploy to **Vercel**. Set the root directory to `frontend`. Ensure `NEXT_PUBLIC_API_URL` points to your backend production URL.
+- **Backend**: Deploy as a single **Render Web Service** (Docker environment). Set the root directory to `backend`. StatusForge uses an **embedded ARQ worker** running inside the FastAPI process, meaning you do **not** need to deploy or pay for a separate Render Background Worker.
+- **Database**: Use **Supabase** PostgreSQL. StatusForge uses Alembic migrations; Render will automatically run the existing migration command defined in the backend container startup.
+- **Redis**: Use **Render Key Value** (Redis) in the same Singapore region as your Render Web Service. Provide the internal `REDIS_URL` to your backend.
+- **Email**: Use **Resend**. For initial deployment, keep `NOTIFICATION_MODE=log`. Switch to `live` and provide `EMAIL_PROVIDER_API_KEY` when ready to send real emails.
+- **Monitoring**: Sentry is optional and can be configured by supplying a `SENTRY_DSN`.
+
+*Note: Local development via Docker Compose will still spin up a separate worker container for ease of debugging, but production uses the embedded worker strategy.*

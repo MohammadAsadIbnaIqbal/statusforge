@@ -56,17 +56,31 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Failed to connect to Redis: {e}")
 
     # 2. 🚀 Start Embedded ARQ Worker in the background ($0/month)
+    worker = None
+    worker_task = None
     try:
         worker = Worker(
             functions=WorkerSettings.functions,
-            redis_settings=WorkerSettings.redis_settings
+            redis_settings=WorkerSettings.redis_settings,
+            handle_signals=False
         )
-        # asyncio.create_task(worker.async_run())
+        worker_task = asyncio.create_task(worker.async_run())
         logger.info("Embedded ARQ Background Worker started successfully.")
     except Exception as e:
         logger.warning(f"Failed to start embedded ARQ Worker: {e}")
 
     yield
+
+    if worker_task:
+        logger.info("Shutting down ARQ Worker task...")
+        worker_task.cancel()
+        await asyncio.gather(worker_task, return_exceptions=True)
+    if worker:
+        try:
+            await worker.close()
+            logger.info("ARQ Worker closed.")
+        except Exception as e:
+            logger.warning(f"Failed to close ARQ worker: {e}")
 
     logger.info("Shutting down and disposing database engine...")
     await engine.dispose()
