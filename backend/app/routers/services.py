@@ -36,7 +36,9 @@ async def create_service(
 ):
     # Enforce max 20 services per user
     count_statement = select(func.count()).select_from(Service).where(Service.owner_id == current_user.id)
-    count = (await session.exec(count_statement)).one()
+    count_result = (await session.exec(count_statement)).one()
+    count = count_result[0] if isinstance(count_result, tuple) else count_result
+    
     if count >= 20:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
