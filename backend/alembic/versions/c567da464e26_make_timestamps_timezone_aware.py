@@ -32,7 +32,7 @@ def upgrade() -> None:
     op.alter_column('incident', 'updated_at', type_=sa.DateTime(timezone=True), existing_type=sa.DateTime())
     op.alter_column('incident', 'resolved_at', type_=sa.DateTime(timezone=True), existing_type=sa.DateTime())
     # incidentupdate
-    op.alter_column('incidentupdate', 'created_at', type_=sa.DateTime(timezone=True), existing_type=sa.DateTime())
+    op.alter_column('incident_updates', 'created_at', type_=sa.DateTime(timezone=True), existing_type=sa.DateTime())
     # subscriber
     op.alter_column('subscriber', 'confirmation_token_expires_at', type_=sa.DateTime(timezone=True), existing_type=sa.DateTime())
     op.alter_column('subscriber', 'created_at', type_=sa.DateTime(timezone=True), existing_type=sa.DateTime())
@@ -51,7 +51,7 @@ def downgrade() -> None:
     op.alter_column('incident', 'updated_at', type_=sa.DateTime(), existing_type=sa.DateTime(timezone=True))
     op.alter_column('incident', 'resolved_at', type_=sa.DateTime(), existing_type=sa.DateTime(timezone=True))
     # incidentupdate
-    op.alter_column('incidentupdate', 'created_at', type_=sa.DateTime(), existing_type=sa.DateTime(timezone=True))
+    op.alter_column('incident_updates', 'created_at', type_=sa.DateTime(), existing_type=sa.DateTime(timezone=True))
     # subscriber
     op.alter_column('subscriber', 'confirmation_token_expires_at', type_=sa.DateTime(), existing_type=sa.DateTime(timezone=True))
     op.alter_column('subscriber', 'created_at', type_=sa.DateTime(), existing_type=sa.DateTime(timezone=True))
