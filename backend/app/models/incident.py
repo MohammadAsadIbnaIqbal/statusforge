@@ -31,8 +31,13 @@ class IncidentServiceLink(SQLModel, table=True):
 
 class IncidentBase(SQLModel):
     title: str = Field(max_length=200)
-    status: IncidentStatus = Field(default=IncidentStatus.INVESTIGATING)
-    impact: IncidentImpact
+    status: IncidentStatus = Field(
+        default=IncidentStatus.INVESTIGATING,
+        sa_type=sa.Enum(IncidentStatus, native_enum=False, length=20)
+    )
+    impact: IncidentImpact = Field(
+        sa_type=sa.Enum(IncidentImpact, native_enum=False, length=20)
+    )
 
 class Incident(IncidentBase, table=True):
     __tablename__ = "incident"
@@ -58,7 +63,9 @@ class Incident(IncidentBase, table=True):
     updates: list["IncidentUpdate"] = Relationship(back_populates="incident", cascade_delete=True)
 
 class IncidentUpdateBase(SQLModel):
-    status: IncidentStatus
+    status: IncidentStatus = Field(
+        sa_type=sa.Enum(IncidentStatus, native_enum=False, length=20)
+    )
     message: str
 
 class IncidentUpdate(IncidentUpdateBase, table=True):

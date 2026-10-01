@@ -19,7 +19,10 @@ class ServiceStatus(str, Enum):
 class ServiceBase(SQLModel):
     name: str = Field(max_length=100)
     description: str | None = Field(default=None, max_length=500)
-    current_status: ServiceStatus = Field(default=ServiceStatus.OPERATIONAL)
+    current_status: ServiceStatus = Field(
+        default=ServiceStatus.OPERATIONAL,
+        sa_type=sa.Enum(ServiceStatus, native_enum=False, length=20)
+    )
     display_order: int = Field(default=0)
     is_visible: bool = Field(default=True)
 
