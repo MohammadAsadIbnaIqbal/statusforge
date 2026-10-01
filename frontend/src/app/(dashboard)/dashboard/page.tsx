@@ -71,7 +71,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="shadow-sm border-gray-200">
           <CardContent className="p-6">
-            <div className="flex items-start">
+            <div className="flex items-center">
               <div className={`flex h-12 w-12 items-center justify-center rounded-xl shrink-0 ${statusBg} ${statusColor}`}>
                 <Activity className="h-6 w-6" />
               </div>
@@ -85,34 +85,32 @@ export default function DashboardPage() {
 
         <Card className="shadow-sm border-gray-200">
           <CardContent className="p-6">
-            <div className="flex items-start">
+            <div className="flex items-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 shrink-0">
                 <Server className="h-6 w-6" />
               </div>
               <div className="ml-4 min-w-0 flex-1">
                 <p className="text-sm font-medium text-gray-500 truncate">Services</p>
-                <div className="flex flex-col">
-                  <p className="text-2xl font-semibold text-gray-900 leading-none">{services.length}</p>
-                  {nonOperationalCount > 0 && (
-                    <span className="text-xs font-medium text-red-600 mt-1">{nonOperationalCount} degraded</span>
-                  )}
-                </div>
+                <p className="text-2xl font-semibold text-gray-900 leading-none">{services.length}</p>
               </div>
             </div>
+            {nonOperationalCount > 0 && (
+              <div className="ml-16 mt-1">
+                <span className="text-xs font-medium text-red-600">{nonOperationalCount} degraded</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card className="shadow-sm border-gray-200">
           <CardContent className="p-6">
-            <div className="flex items-start">
+            <div className="flex items-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-100 text-yellow-600 shrink-0">
                 <AlertTriangle className="h-6 w-6" />
               </div>
               <div className="ml-4 min-w-0 flex-1">
                 <p className="text-sm font-medium text-gray-500 truncate">Active Incidents</p>
-                <div className="flex flex-col">
-                  <p className="text-2xl font-semibold text-gray-900 leading-none">{activeIncidents.length}</p>
-                </div>
+                <p className="text-2xl font-semibold text-gray-900 leading-none">{activeIncidents.length}</p>
               </div>
             </div>
           </CardContent>
@@ -120,17 +118,17 @@ export default function DashboardPage() {
 
         <Card className="shadow-sm border-gray-200">
           <CardContent className="p-6">
-            <div className="flex items-start">
+            <div className="flex items-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600 shrink-0">
                 <Users className="h-6 w-6" />
               </div>
               <div className="ml-4 min-w-0 flex-1">
                 <p className="text-sm font-medium text-gray-500 truncate">Subscribers</p>
-                <div className="flex flex-col">
-                  <p className="text-2xl font-semibold text-gray-900 leading-none">{subscribers.length}</p>
-                  <span className="text-xs font-medium text-gray-500 mt-1">{confirmedSubscribers} confirmed</span>
-                </div>
+                <p className="text-2xl font-semibold text-gray-900 leading-none">{subscribers.length}</p>
               </div>
+            </div>
+            <div className="ml-16 mt-1">
+              <span className="text-xs font-medium text-gray-500">{confirmedSubscribers} confirmed</span>
             </div>
           </CardContent>
         </Card>
