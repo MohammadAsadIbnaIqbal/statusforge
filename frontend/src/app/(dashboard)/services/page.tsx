@@ -122,8 +122,9 @@ export default function ServicesPage() {
                     <TableCell className="text-gray-500">
                       {service.display_order}
                     </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Link href={`/services/${service.id}/edit`}>
+                    <TableCell>
+                      <div className="flex items-center justify-end space-x-2">
+                        <Link href={`/services/${service.id}/edit`}>
                         <Button variant="ghost" size="sm" aria-label="Edit">
                           <Pencil className="h-4 w-4 text-gray-500" />
                         </Button>
@@ -138,6 +139,7 @@ export default function ServicesPage() {
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -149,3 +151,6 @@ export default function ServicesPage() {
     </div>
   );
 }
+
+
+

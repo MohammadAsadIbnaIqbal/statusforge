@@ -71,13 +71,13 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="shadow-sm border-gray-200">
           <CardContent className="p-6">
-            <div className="flex items-center">
+            <div className="flex items-start">
               <div className={`flex h-12 w-12 items-center justify-center rounded-xl shrink-0 ${statusBg} ${statusColor}`}>
                 <Activity className="h-6 w-6" />
               </div>
               <div className="ml-4 min-w-0 flex-1">
                 <p className="text-sm font-medium text-gray-500 truncate">Overall Status</p>
-                <p className={`text-lg font-semibold truncate ${statusColor}`} title={overallStatus}>{overallStatus}</p>
+                <p className={`text-2xl font-semibold leading-none truncate ${statusColor}`} title={overallStatus}>{overallStatus}</p>
               </div>
             </div>
           </CardContent>
@@ -85,7 +85,7 @@ export default function DashboardPage() {
 
         <Card className="shadow-sm border-gray-200">
           <CardContent className="p-6">
-            <div className="flex items-center">
+            <div className="flex items-start">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 shrink-0">
                 <Server className="h-6 w-6" />
               </div>
@@ -104,7 +104,7 @@ export default function DashboardPage() {
 
         <Card className="shadow-sm border-gray-200">
           <CardContent className="p-6">
-            <div className="flex items-center">
+            <div className="flex items-start">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-100 text-yellow-600 shrink-0">
                 <AlertTriangle className="h-6 w-6" />
               </div>
@@ -120,7 +120,7 @@ export default function DashboardPage() {
 
         <Card className="shadow-sm border-gray-200">
           <CardContent className="p-6">
-            <div className="flex items-center">
+            <div className="flex items-start">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600 shrink-0">
                 <Users className="h-6 w-6" />
               </div>
@@ -138,11 +138,13 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
+            <div className="flex items-center justify-between w-full">
             <CardTitle>Recent Incidents</CardTitle>
-            <Link href="/incidents">
-              <Button variant="ghost" size="sm">View All</Button>
-            </Link>
+              <Link href="/incidents">
+                <Button variant="ghost" size="sm">View All</Button>
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
             {recentIncidents.length === 0 ? (
@@ -194,3 +196,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
