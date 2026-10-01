@@ -52,7 +52,7 @@ async def create_incident(session: AsyncSession, user: User, incident_in: Incide
     # Cache invalidation and notifications
     try:
         redis = await create_pool(get_redis_settings(fast_fail=True))
-        await redis.enqueue_job("invalidate_cache", f"status_page_{user.organization_slug}")
+        await redis.enqueue_job("invalidate_cache", f"statusforge:status:{user.organization_slug}")
         await redis.enqueue_job("notify_subscribers", incident_id=new_incident.id)
     except Exception:
         pass # Background hook failure shouldn't fail the request
@@ -94,7 +94,7 @@ async def update_incident(session: AsyncSession, user: User, incident_id: int, u
     # Cache invalidation and notifications
     try:
         redis = await create_pool(get_redis_settings(fast_fail=True))
-        await redis.enqueue_job("invalidate_cache", f"status_page_{user.organization_slug}")
+        await redis.enqueue_job("invalidate_cache", f"statusforge:status:{user.organization_slug}")
         await redis.enqueue_job("notify_subscribers", incident_id=incident.id)
     except Exception:
         pass
@@ -170,3 +170,4 @@ async def get_incident(session: AsyncSession, user: User, incident_id: int) -> d
         "services": services,
         "updates": updates
     }
+
