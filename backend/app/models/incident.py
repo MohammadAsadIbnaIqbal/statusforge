@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 from datetime import datetime, timezone
+from sqlalchemy import DateTime
 import sqlalchemy as sa
 from enum import Enum
 from sqlmodel import Field, Relationship, SQLModel
@@ -48,9 +49,9 @@ class Incident(IncidentBase, table=True):
     
     id: int | None = Field(default=None, primary_key=True)
     owner_id: int = Field(foreign_key="user.id", index=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    resolved_at: datetime | None = Field(default=None)
+    created_at: datetime = Field(sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(timezone.utc))
+    resolved_at: datetime | None = Field(sa_type=DateTime(timezone=True), default=None)
 
     owner: "User" = Relationship(back_populates="incidents")
     service_links: list["IncidentServiceLink"] = Relationship(back_populates="incident", cascade_delete=True)
@@ -71,7 +72,7 @@ class IncidentUpdate(IncidentUpdateBase, table=True):
     
     id: int | None = Field(default=None, primary_key=True)
     incident_id: int = Field(foreign_key="incident.id", index=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(timezone.utc))
 
     incident: Incident = Relationship(back_populates="updates")
 

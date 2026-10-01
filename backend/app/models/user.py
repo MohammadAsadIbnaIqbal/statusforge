@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 from datetime import datetime, timezone
+from sqlalchemy import DateTime
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -18,8 +19,8 @@ class User(UserBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     organization_slug: str = Field(max_length=100, index=True, unique=True)
     hashed_password: str = Field(max_length=255)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(timezone.utc))
 
     services: list["Service"] = Relationship(back_populates="owner", cascade_delete=True)
     incidents: list["Incident"] = Relationship(back_populates="owner", cascade_delete=True)
