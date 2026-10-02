@@ -105,7 +105,8 @@ app.add_middleware(
 async def root(request: Request):
     return {"message": "Welcome to StatusForge API! Visit /docs for interactive documentation."}
 
-@app.api_route("/health", methods=["GET", "HEAD"], status_code=status.HTTP_200_OK, tags=["Monitoring"])
+@app.get("/health", status_code=status.HTTP_200_OK, tags=["Monitoring"])
+@app.head("/health", status_code=status.HTTP_200_OK, tags=["Monitoring"], include_in_schema=False)
 async def health_check():
     try:
         async with engine.connect() as conn:
