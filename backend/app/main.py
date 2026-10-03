@@ -1,3 +1,4 @@
+# CI/CD pipeline verification comment
 import asyncio
 import logging
 from contextlib import asynccontextmanager
