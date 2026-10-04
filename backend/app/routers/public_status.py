@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, status, HTTPException, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
 from app.core.database import get_session
-from app.models.user import User
+from app.models.organization import Organization
 from app.models.subscriber import Subscriber, SubscriberCreate
 from app.services.status_page_service import get_cached_public_status
 from app.worker import get_redis_settings
@@ -30,13 +30,12 @@ async def subscribe_to_status(
     subscriber_in: SubscriberCreate,
     session: AsyncSession = Depends(get_session)
 ):
-    user = (await session.exec(select(User).where(User.organization_slug == org_slug))).first()
-    if not user:
+    org = (await session.exec(select(Organization).where(Organization.slug == org_slug))).first()
+    if not org:
         raise HTTPException(status_code=404, detail="Status page not found")
         
-    # Check for existing
     existing = (await session.exec(
-        select(Subscriber).where(Subscriber.owner_id == user.id, Subscriber.email == subscriber_in.email)
+        select(Subscriber).where(Subscriber.organization_id == org.id, Subscriber.email == subscriber_in.email)
     )).first()
     
     if existing:
@@ -46,7 +45,6 @@ async def subscribe_to_status(
                 expires_at = expires_at.replace(tzinfo=timezone.utc)
                 
             if datetime.now(timezone.utc) > expires_at:
-                # Expired unconfirmed, delete and recreate
                 await session.delete(existing)
                 await session.flush()
             else:
@@ -58,7 +56,7 @@ async def subscribe_to_status(
     unsub_token = secrets.token_urlsafe(32)
     
     new_sub = Subscriber(
-        owner_id=user.id,
+        organization_id=org.id,
         email=subscriber_in.email,
         confirmation_token=conf_token,
         confirmation_token_expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
@@ -74,8 +72,8 @@ async def subscribe_to_status(
             "send_confirmation_email_task", 
             email=new_sub.email, 
             token=conf_token,
-            org_name=user.organization_name,
-            org_slug=user.organization_slug
+            org_name=org.name,
+            org_slug=org.slug
         )
     except Exception:
         pass

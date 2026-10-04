@@ -20,7 +20,7 @@ from sqlmodel import select
 
 from app.core.config import settings
 from app.core.database import engine
-from app.routers import auth, services, incidents, public_status, subscribers
+from app.routers import auth, services, incidents, public_status, subscribers, organizations, invitations
 from app.worker import WorkerSettings  
 
 if settings.SENTRY_DSN:
@@ -135,3 +135,5 @@ app.include_router(services.router)
 app.include_router(incidents.router)
 app.include_router(public_status.router)
 app.include_router(subscribers.router)
+app.include_router(organizations.router)
+app.include_router(invitations.router)

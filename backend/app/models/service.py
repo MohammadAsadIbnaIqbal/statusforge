@@ -6,7 +6,7 @@ from enum import Enum
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
-    from app.models.user import User
+    from app.models.organization import Organization
     from app.models.incident import IncidentServiceLink
 
 class ServiceStatus(str, Enum):
@@ -36,11 +36,11 @@ class Service(ServiceBase, table=True):
     )
     
     id: int | None = Field(default=None, primary_key=True)
-    owner_id: int = Field(foreign_key="user.id", index=True)
+    organization_id: int = Field(foreign_key="organization.id", index=True)
     created_at: datetime = Field(sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(timezone.utc))
     
-    owner: "User" = Relationship(back_populates="services")
+    organization: "Organization" = Relationship(back_populates="services")
     incident_links: list["IncidentServiceLink"] = Relationship(back_populates="service", cascade_delete=True)
 
 class ServiceCreate(SQLModel):
@@ -52,8 +52,9 @@ class ServiceUpdate(SQLModel):
     description: str | None = Field(default=None, max_length=500)
     display_order: int | None = Field(default=None)
     is_visible: bool | None = Field(default=None)
+
 class ServiceResponse(ServiceBase):
     id: int
-    owner_id: int
+    organization_id: int
     created_at: datetime
     updated_at: datetime

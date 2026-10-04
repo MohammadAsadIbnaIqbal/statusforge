@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     EMAIL_PROVIDER_API_KEY: Optional[str] = None
     EMAIL_SENDER: str = "StatusForge <onboarding@resend.dev>"
 
+    # Firebase backend variables
+    FIREBASE_PROJECT_ID: Optional[str] = None
+    FIREBASE_CLIENT_EMAIL: Optional[str] = None
+    FIREBASE_PRIVATE_KEY: Optional[str] = None
+
     # Automatically reads from .env in the root directory
     model_config = SettingsConfigDict(
         env_file=".env",

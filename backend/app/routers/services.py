@@ -6,20 +6,25 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.core.database import get_session
-from app.routers.auth import get_current_user
-from app.models.user import User
+from app.core.dependencies import require_organization_member, get_organization_from_header
+from app.models.organization import Organization
+from app.models.membership import Membership, Role
 from app.models.service import Service, ServiceCreate, ServiceUpdate, ServiceResponse
 from app.models.incident import Incident, IncidentServiceLink, IncidentStatus
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter(tags=["Services"], prefix="/services")
 
+def ensure_manage_permission(membership: Membership):
+    if membership.role not in (Role.OWNER, Role.ADMIN, Role.MEMBER):
+        raise HTTPException(status_code=403, detail="Not authorized to manage services")
+
 @router.get("", response_model=list[ServiceResponse])
 async def list_services(
-    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(require_organization_member),
     session: AsyncSession = Depends(get_session)
 ):
-    statement = select(Service).where(Service.owner_id == current_user.id).order_by(
+    statement = select(Service).where(Service.organization_id == membership.organization_id).order_by(
         Service.display_order.asc(),
         Service.created_at.asc()
     )
@@ -31,11 +36,13 @@ async def list_services(
 async def create_service(
     request: Request,
     service_data: ServiceCreate,
-    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(require_organization_member),
     session: AsyncSession = Depends(get_session)
 ):
-    # Enforce max 20 services per user
-    count_statement = select(func.count()).select_from(Service).where(Service.owner_id == current_user.id)
+    ensure_manage_permission(membership)
+    
+    # Enforce max 20 services per org
+    count_statement = select(func.count()).select_from(Service).where(Service.organization_id == membership.organization_id)
     count_result = (await session.exec(count_statement)).one()
     count = count_result[0] if isinstance(count_result, tuple) else count_result
     
@@ -47,7 +54,7 @@ async def create_service(
 
     new_service = Service(
         **service_data.model_dump(),
-        owner_id=current_user.id
+        organization_id=membership.organization_id
     )
 
     session.add(new_service)
@@ -58,10 +65,10 @@ async def create_service(
 @router.get("/{service_id}", response_model=ServiceResponse)
 async def get_service(
     service_id: int,
-    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(require_organization_member),
     session: AsyncSession = Depends(get_session)
 ):
-    statement = select(Service).where(Service.id == service_id, Service.owner_id == current_user.id)
+    statement = select(Service).where(Service.id == service_id, Service.organization_id == membership.organization_id)
     service = (await session.exec(statement)).first()
     if not service:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service not found")
@@ -72,10 +79,12 @@ async def get_service(
 async def update_service(
     service_id: int,
     service_data: ServiceUpdate,
-    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(require_organization_member),
     session: AsyncSession = Depends(get_session)
 ):
-    statement = select(Service).where(Service.id == service_id, Service.owner_id == current_user.id)
+    ensure_manage_permission(membership)
+    
+    statement = select(Service).where(Service.id == service_id, Service.organization_id == membership.organization_id)
     service = (await session.exec(statement)).first()
     if not service:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service not found")
@@ -95,10 +104,12 @@ async def update_service(
 @router.delete("/{service_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_service(
     service_id: int,
-    current_user: User = Depends(get_current_user),
+    membership: Membership = Depends(require_organization_member),
     session: AsyncSession = Depends(get_session)
 ):
-    statement = select(Service).where(Service.id == service_id, Service.owner_id == current_user.id)
+    ensure_manage_permission(membership)
+    
+    statement = select(Service).where(Service.id == service_id, Service.organization_id == membership.organization_id)
     service = (await session.exec(statement)).first()
     if not service:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service not found")
