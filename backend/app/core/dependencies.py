@@ -1,5 +1,5 @@
-from fastapi import Depends, HTTPException, status, Header
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import logging
+from fastapi import Depends, HTTPException, status, Header, Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
 import firebase_admin.auth
@@ -9,16 +9,48 @@ from app.models.user import User
 from app.models.organization import Organization
 from app.models.membership import Membership, Role
 
-security = HTTPBearer()
+logger = logging.getLogger("statusforge.auth")
 
-def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    try:
-        decoded_token = firebase_admin.auth.verify_id_token(credentials.credentials)
-        return decoded_token
-    except Exception as e:
+def verify_firebase_token(request: Request):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid authentication credentials: {e}",
+            detail="Missing authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    parts = auth_header.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication scheme",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token = parts[1]
+    try:
+        decoded_token = firebase_admin.auth.verify_id_token(token)
+        return decoded_token
+    except firebase_admin.auth.ExpiredIdTokenError:
+        logger.info("Expired Firebase token received")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except firebase_admin.auth.InvalidIdTokenError:
+        logger.info("Invalid Firebase token received")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except Exception as e:
+        logger.warning(f"Firebase token verification failed internally: {type(e).__name__}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -28,16 +60,21 @@ async def get_current_user_firebase(
 ) -> User:
     firebase_uid = decoded_token.get("uid")
     if not firebase_uid:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-        
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token missing uid claim",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     statement = select(User).where(User.firebase_uid == firebase_uid)
     result = await session.exec(statement)
     user = result.first()
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found. Please bootstrap account.",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     return user
 
@@ -48,14 +85,14 @@ async def get_organization_from_header(
 ) -> Organization:
     if not x_organization_id and not x_organization_slug:
         raise HTTPException(status_code=400, detail="Missing organization context")
-        
+
     org = None
     if x_organization_id:
         org = await session.get(Organization, x_organization_id)
     elif x_organization_slug:
         statement = select(Organization).where(Organization.slug == x_organization_slug)
         org = (await session.exec(statement)).first()
-        
+
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     return org
@@ -70,10 +107,10 @@ async def require_organization_member(
         Membership.organization_id == organization.id
     )
     membership = (await session.exec(statement)).first()
-    
+
     if not membership:
         raise HTTPException(status_code=403, detail="Not a member of this organization")
-        
+
     return membership
 
 async def require_organization_admin(

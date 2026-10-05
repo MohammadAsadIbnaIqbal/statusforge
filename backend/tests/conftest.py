@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.organization import Organization
 from app.models.membership import Membership, Role
 from app.core.dependencies import verify_firebase_token
+from fastapi import Request, HTTPException, status
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -26,23 +27,53 @@ async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
 
 app.dependency_overrides[get_session] = override_get_session
 
-# Mock Firebase token
-MOCK_FIREBASE_UID = "test-uid-123"
-MOCK_EMAIL = "test@example.com"
-MOCK_NAME = "Test User"
-MOCK_PICTURE = "https://example.com/pic.jpg"
-MOCK_ORG_SLUG = "test-org"
+async def mock_verify_firebase_token(request: Request):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-async def mock_verify_firebase_token():
+    parts = auth_header.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication scheme",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token_val = parts[1]
+    if token_val.startswith("mock-uid-"):
+        uid = token_val.split("mock-uid-")[1]
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     return {
-        "uid": MOCK_FIREBASE_UID,
-        "email": MOCK_EMAIL,
-        "name": MOCK_NAME,
-        "picture": MOCK_PICTURE,
+        "uid": uid,
+        "email": f"{uid}@example.com",
+        "name": f"User {uid}",
+        "picture": "https://example.com/pic.jpg",
         "email_verified": True
     }
 
 app.dependency_overrides[verify_firebase_token] = mock_verify_firebase_token
+
+@pytest.fixture(autouse=True)
+def disable_rate_limit():
+    from app.routers.services import limiter as services_limiter
+    from app.routers.public_status import limiter as public_limiter
+
+    services_limiter.enabled = False
+    public_limiter.enabled = False
+    yield
+    services_limiter.enabled = True
+    public_limiter.enabled = True
 
 @pytest.fixture(autouse=True)
 async def setup_db():
@@ -61,24 +92,24 @@ async def test_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest.fixture
 async def setup_test_user(test_session: AsyncSession):
     user = User(
-        firebase_uid=MOCK_FIREBASE_UID,
-        email=MOCK_EMAIL,
-        display_name=MOCK_NAME,
-        photo_url=MOCK_PICTURE
+        firebase_uid="test-uid-123",
+        email="test-uid-123@example.com",
+        display_name="User test-uid-123",
+        photo_url="https://example.com/pic.jpg"
     )
     test_session.add(user)
     await test_session.commit()
     await test_session.refresh(user)
-    
+
     org = Organization(
         name="Test Org",
-        slug=MOCK_ORG_SLUG,
+        slug="test-org",
         created_by=user.id
     )
     test_session.add(org)
     await test_session.commit()
     await test_session.refresh(org)
-    
+
     membership = Membership(
         user_id=user.id,
         organization_id=org.id,
@@ -86,7 +117,7 @@ async def setup_test_user(test_session: AsyncSession):
     )
     test_session.add(membership)
     await test_session.commit()
-    
+
     return {"user": user, "org": org}
 
 @pytest.fixture

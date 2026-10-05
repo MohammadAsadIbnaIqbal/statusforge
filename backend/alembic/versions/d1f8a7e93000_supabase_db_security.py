@@ -7,6 +7,7 @@ Create Date: 2026-10-03 16:00:00.000000
 """
 from typing import Sequence, Union
 from alembic import op
+import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'd1f8a7e93000'
@@ -19,6 +20,11 @@ def upgrade() -> None:
     if conn.dialect.name != 'postgresql':
         return
 
+    # Supabase provides the anon/authenticated roles; plain PostgreSQL (local Docker, CI) does not.
+    # Only revoke from roles that exist so the migration runs on both. PUBLIC always exists.
+    found = {row[0] for row in conn.execute(sa.text("SELECT rolname FROM pg_roles WHERE rolname IN ('anon', 'authenticated')"))}
+    grantees = ", ".join([r for r in ("anon", "authenticated") if r in found] + ["PUBLIC"])
+
     tables = [
         'public."user"',
         'public.service',
@@ -30,11 +36,11 @@ def upgrade() -> None:
 
     for table in tables:
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;")
-        op.execute(f"REVOKE ALL PRIVILEGES ON TABLE {table} FROM anon, authenticated, PUBLIC;")
+        op.execute(f"REVOKE ALL PRIVILEGES ON TABLE {table} FROM {grantees};")
 
-    op.execute("ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated, PUBLIC;")
-    op.execute("ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated, PUBLIC;")
-    op.execute("ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon, authenticated, PUBLIC;")
+    op.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM {grantees};")
+    op.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON SEQUENCES FROM {grantees};")
+    op.execute(f"ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM {grantees};")
 
 def downgrade() -> None:
     conn = op.get_bind()

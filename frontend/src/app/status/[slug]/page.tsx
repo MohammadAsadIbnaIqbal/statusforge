@@ -1,12 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { CheckCircle2, AlertTriangle, AlertCircle, XCircle, Wrench, Activity } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { PublicStatusResponse, PublicIncident } from "@/types/api";
+import { PublicStatusResponse, Incident, Service } from "@/types/api";
 import { SubscribeForm } from "./SubscribeForm";
 
-const statusConfig = {
+const statusConfig: Record<string, any> = {
   OPERATIONAL: { label: "All Systems Operational", color: "text-emerald-500", bg: "bg-emerald-500", icon: CheckCircle2, bannerBg: "bg-emerald-50 border-emerald-200", bannerText: "text-emerald-800" },
   DEGRADED_PERFORMANCE: { label: "Degraded Performance", color: "text-amber-500", bg: "bg-amber-500", icon: AlertTriangle, bannerBg: "bg-amber-50 border-amber-200", bannerText: "text-amber-800" },
   PARTIAL_OUTAGE: { label: "Partial Outage", color: "text-orange-500", bg: "bg-orange-500", icon: AlertCircle, bannerBg: "bg-orange-50 border-orange-200", bannerText: "text-orange-800" },
@@ -14,7 +15,7 @@ const statusConfig = {
   UNDER_MAINTENANCE: { label: "Under Maintenance", color: "text-blue-500", bg: "bg-blue-500", icon: Wrench, bannerBg: "bg-blue-50 border-blue-200", bannerText: "text-blue-800" },
 };
 
-const incidentStatusConfig = {
+const incidentStatusConfig: Record<string, any> = {
   INVESTIGATING: { label: "Investigating", color: "text-rose-600" },
   IDENTIFIED: { label: "Identified", color: "text-amber-600" },
   MONITORING: { label: "Monitoring", color: "text-blue-600" },
@@ -40,9 +41,9 @@ function formatDate(dateStr: string) {
   }).format(new Date(dateStr));
 }
 
-function IncidentCard({ incident }: { incident: PublicIncident }) {
+function IncidentCard({ incident }: { incident: Incident }) {
   const sortedUpdates = [...incident.updates].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm mb-6">
       <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -90,7 +91,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PublicStatusPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  
+
   let data: PublicStatusResponse;
   try {
     data = await apiFetch(`/status/${slug}`, { cache: "no-store" });
@@ -101,7 +102,7 @@ export default async function PublicStatusPage({ params }: { params: Promise<{ s
     }
     throw error;
   }
-  
+
   const config = statusConfig[data.overall_status];
   const Icon = config.icon;
 
@@ -132,7 +133,7 @@ export default async function PublicStatusPage({ params }: { params: Promise<{ s
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Services</h2>
             <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
               <ul className="divide-y divide-gray-100">
-                {data.services.map((service) => {
+                {data.services.map((service: any) => {
                   const sConf = statusConfig[service.status];
                   return (
                     <li key={service.id} className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -190,9 +191,9 @@ export default async function PublicStatusPage({ params }: { params: Promise<{ s
             </div>
           )}
         </section>
-        
+
       </main>
-      
+
       <footer className="border-t border-gray-200 bg-white py-8 mt-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
           Powered by StatusForge

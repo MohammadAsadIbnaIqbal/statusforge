@@ -12,7 +12,7 @@ import { useServices, useIncidents, useSubscribers } from "@/lib/hooks";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  
+
   const { services, loading: sLoading } = useServices();
   const { incidents, loading: iLoading } = useIncidents();
   const { subscribers, loading: subLoading } = useSubscribers();
@@ -26,7 +26,7 @@ export default function DashboardPage() {
   }
 
   const nonOperationalCount = services.filter(s => s.current_status !== 'OPERATIONAL').length;
-  
+
   const allIncidents = incidents?.items || [];
   const activeIncidents = allIncidents.filter(i => i.status !== 'RESOLVED');
   const recentIncidents = allIncidents.slice(0, 5);
@@ -64,7 +64,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Welcome back, {user?.username}. Here&apos;s an overview of your status page.
+          Welcome back, {user?.email}. Here&apos;s an overview of your status page.
         </p>
       </div>
 
@@ -194,5 +194,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-

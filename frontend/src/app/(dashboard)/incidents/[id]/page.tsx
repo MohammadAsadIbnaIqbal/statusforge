@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Incident } from "@/types/api";
-import { apiFetch } from "@/lib/api";
+import { useApi } from "@/lib/useApi";
 
 const statusColors: Record<string, 'default' | 'success' | 'warning' | 'destructive'> = {
   INVESTIGATING: 'destructive',
@@ -28,14 +28,15 @@ const impactColors: Record<string, 'default' | 'success' | 'warning' | 'destruct
 
 
 export default function IncidentDetailPage() {
+  const { fetchApi } = useApi();
   const params = useParams();
   const id = params.id as string;
-  
-  
+
+
   const [incident, setIncident] = useState<Incident | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
+
   const [updateMessage, setUpdateMessage] = useState("");
   const [updateStatus, setUpdateStatus] = useState("INVESTIGATING");
   const [updating, setUpdating] = useState(false);
@@ -43,8 +44,7 @@ export default function IncidentDetailPage() {
 
   const fetchIncident = async () => {
     try {
-      const token = localStorage.getItem("access_token") || undefined;
-      const data = await apiFetch(`/incidents/${id}`, {}, token);
+      const data = await fetchApi(`/incidents/${id}`, {});
       setIncident(data);
       if (data && data.status !== 'RESOLVED') {
         setUpdateStatus(data.status); // Default to current status
@@ -69,15 +69,14 @@ export default function IncidentDetailPage() {
     setUpdating(true);
 
     try {
-      const token = localStorage.getItem("access_token") || undefined;
-      await apiFetch(`/incidents/${id}/updates`, {
+      await fetchApi(`/incidents/${id}/updates`, {
         method: "POST",
         body: JSON.stringify({
           status: updateStatus,
           message: updateMessage
         }),
-      }, token);
-      
+      });
+
       setUpdateMessage("");
       await fetchIncident(); // Refresh incident data
     } catch (err: unknown) {
@@ -165,7 +164,7 @@ export default function IncidentDetailPage() {
               <CardContent>
                 <form onSubmit={handleUpdate} className="space-y-4">
                   {updateError && <Alert variant="destructive">{updateError}</Alert>}
-                  
+
                   <div className="flex flex-col space-y-1.5">
                     <label htmlFor="status" className="text-sm font-medium text-gray-700">New Status</label>
                     <select
@@ -235,4 +234,3 @@ export default function IncidentDetailPage() {
     </div>
   );
 }
-

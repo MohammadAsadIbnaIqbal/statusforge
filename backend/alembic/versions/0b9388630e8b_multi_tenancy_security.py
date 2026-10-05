@@ -23,6 +23,11 @@ def upgrade() -> None:
     if conn.dialect.name != 'postgresql':
         return
 
+    # Supabase provides the anon/authenticated roles; plain PostgreSQL (local Docker, CI) does not.
+    # Only revoke from roles that exist so the migration runs on both. PUBLIC always exists.
+    found = {row[0] for row in conn.execute(sa.text("SELECT rolname FROM pg_roles WHERE rolname IN ('anon', 'authenticated')"))}
+    grantees = ", ".join([r for r in ("anon", "authenticated") if r in found] + ["PUBLIC"])
+
     tables = [
         'public.organization',
         'public.membership',
@@ -31,7 +36,7 @@ def upgrade() -> None:
 
     for table in tables:
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;")
-        op.execute(f"REVOKE ALL PRIVILEGES ON TABLE {table} FROM anon, authenticated, PUBLIC;")
+        op.execute(f"REVOKE ALL PRIVILEGES ON TABLE {table} FROM {grantees};")
 
 def downgrade() -> None:
     conn = op.get_bind()

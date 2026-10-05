@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
-import { apiFetch } from "@/lib/api";
+import { useApi } from "@/lib/useApi";
 
 export default function NewServicePage() {
+  const { fetchApi } = useApi();
   const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
@@ -24,12 +25,11 @@ export default function NewServicePage() {
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem("access_token") || undefined;
-      await apiFetch("/services", {
+      await fetchApi("/services", {
         method: "POST",
         body: JSON.stringify(formData),
-      }, token);
-      
+      });
+
       router.push("/services");
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -61,7 +61,7 @@ export default function NewServicePage() {
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && <Alert variant="destructive">{error}</Alert>}
-            
+
             <div className="space-y-4">
               <Input
                 id="name"
@@ -73,7 +73,7 @@ export default function NewServicePage() {
                 placeholder="e.g. API Server"
                 maxLength={100}
               />
-              
+
               <div className="flex flex-col space-y-1.5 w-full">
                 <label htmlFor="description" className="text-sm font-medium leading-none text-gray-700">
                   Description (Optional)

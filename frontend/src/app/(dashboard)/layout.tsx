@@ -5,15 +5,16 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { 
-  LayoutDashboard, 
-  Server, 
-  Activity, 
-  Users, 
-  Settings, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Server,
+  Activity,
+  Users,
+  Settings,
+  LogOut,
   Menu,
-  X
+  X,
+  ChevronDown
 } from "lucide-react";
 
 const navigation = [
@@ -29,10 +30,11 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, activeOrganization, organizations, setActiveOrganizationId } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -40,7 +42,7 @@ export default function DashboardLayout({
     }
   }, [user, loading, router]);
 
-  if (loading || !user) {
+  if (loading || !user || !activeOrganization) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <LoadingSpinner className="h-10 w-10 text-blue-600" />
@@ -50,26 +52,22 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
       <div
-        className={`flex flex-col fixed inset-y-0 left-0 z-50 w-64 transform bg-white border-r border-gray-200 transition-transform duration-200 ease-in-out md:relative md:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`flex flex-col fixed inset-y-0 left-0 z-50 w-64 transform bg-white border-r border-gray-200 transition-transform duration-200 ease-in-out md:relative md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-gray-200">
           <Link href="/dashboard" className="flex items-center gap-2">
             <Activity className="h-6 w-6 text-blue-600" />
             <span className="text-xl font-bold tracking-tight text-gray-900">StatusForge</span>
           </Link>
-          <button 
+          <button
             className="md:hidden text-gray-500 hover:text-gray-700"
             onClick={() => setSidebarOpen(false)}
           >
@@ -77,38 +75,59 @@ export default function DashboardLayout({
           </button>
         </div>
 
+        <div className="p-4 border-b border-gray-200 relative">
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center justify-between w-full p-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md border border-gray-200"
+          >
+            <span className="truncate">{activeOrganization.name}</span>
+            <ChevronDown className="h-4 w-4 text-gray-500" />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute top-full left-4 right-4 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 py-1 max-h-48 overflow-y-auto">
+              {organizations.map(org => (
+                <button
+                  key={org.id}
+                  onClick={() => {
+                    setActiveOrganizationId(org.id);
+                    setDropdownOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  {org.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="flex flex-1 flex-col overflow-y-auto">
           <nav className="flex-1 space-y-1 px-2 py-4">
             {navigation.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`group flex items-center rounded-md px-2 py-2 text-sm font-medium ${
-                    isActive
-                      ? "bg-gray-100 text-gray-900"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  }`}
+                  className={`group flex items-center rounded-md px-2 py-2 text-sm font-medium ${isActive ? "bg-gray-100 text-gray-900" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
                 >
                   <item.icon
-                    className={`mr-3 h-5 w-5 shrink-0 ${
-                      isActive ? "text-gray-500" : "text-gray-400 group-hover:text-gray-500"
-                    }`}
+                    className={`mr-3 h-5 w-5 shrink-0 ${isActive ? "text-gray-500" : "text-gray-400 group-hover:text-gray-500"}`}
                   />
                   {item.name}
                 </Link>
               );
             })}
           </nav>
-          
+
           <div className="border-t border-gray-200 p-4">
             <div className="flex items-center w-full">
               <div className="flex-1 truncate">
-                <p className="truncate text-sm font-medium text-gray-900">{user.organization_name}</p>
-                <p className="truncate text-xs text-gray-500">{user.email}</p>
+                <p className="truncate text-sm font-medium text-gray-900">{user.email}</p>
+                <p className="truncate text-xs text-gray-500">ID: {user.id}</p>
               </div>
-              <button 
+              <button
                 onClick={logout}
                 className="ml-2 p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-500 rounded-md transition-colors"
                 title="Sign out"
@@ -120,9 +139,7 @@ export default function DashboardLayout({
         </div>
       </div>
 
-      {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Mobile header */}
         <div className="flex h-16 shrink-0 items-center border-b border-gray-200 bg-white px-4 shadow-sm md:hidden">
           <button
             type="button"
@@ -132,7 +149,7 @@ export default function DashboardLayout({
             <Menu className="h-6 w-6" />
           </button>
           <div className="ml-4 flex-1 text-lg font-semibold text-gray-900">
-            {user.organization_name}
+            {activeOrganization.name}
           </div>
         </div>
 

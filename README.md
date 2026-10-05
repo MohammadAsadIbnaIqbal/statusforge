@@ -1,4 +1,4 @@
-﻿# StatusForge
+# StatusForge
 
 A lightweight public status-page and incident communication platform for small SaaS products and teams.
 
@@ -82,11 +82,12 @@ cp frontend/.env.example frontend/.env.local
 
 | Variable | Description |
 |----------|-------------|
-| `SECRET_KEY` | A strong random string for JWT signing. |
+| `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` | Firebase Admin service-account credentials used to verify Firebase ID tokens (authentication is handled by Firebase; the backend issues no tokens of its own). |
 | `DATABASE_URL` | PostgreSQL connection string. |
 | `REDIS_URL` | Redis connection string. |
 | `ALLOWED_ORIGINS` | CORS origins (e.g. `http://localhost:3000`). |
 | `APP_URL` | The base URL of the backend API. |
+| `FRONTEND_URL` | The base URL of the web app. All user-facing email links (invitations, subscriber confirm/unsubscribe, status page) point here. |
 | `NOTIFICATION_MODE` | `log` (default) or `live`. |
 | `EMAIL_PROVIDER_API_KEY` | Resend API Key (required for `live` mode). |
 | `EMAIL_SENDER` | The "From" email address. |

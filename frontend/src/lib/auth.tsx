@@ -5,14 +5,15 @@ import { useRouter } from "next/navigation";
 import { User as FirebaseUser, onAuthStateChanged, getIdToken, signOut } from "firebase/auth";
 import { auth } from "./firebase";
 import { apiFetch } from "./api";
-import { User } from "../types/api";
+import { User, Organization } from "../types/api";
 
 interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
   token: string | null;
-  activeOrganizationId: number | null;
+  organizations: Organization[];
+  activeOrganization: Organization | null;
   setActiveOrganizationId: (id: number) => void;
   logout: () => void;
 }
@@ -23,8 +24,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [activeOrganizationId, setActiveOrganizationId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -34,13 +36,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const idToken = await getIdToken(currentUser);
           setToken(idToken);
-          
+
           // Bootstrap or fetch user from backend
-          const dbUser = await apiFetch("/auth/bootstrap", { method: "POST" }, idToken);
+          const dbUser = await apiFetch("/auth/bootstrap", { method: "POST", body: JSON.stringify({}) }, idToken);
           setUser(dbUser);
-          
+
           // Fetch organizations
           const orgs = await apiFetch("/organizations", {}, idToken);
+          setOrganizations(orgs);
           if (orgs && orgs.length > 0) {
             setActiveOrganizationId(orgs[0].id);
           }
@@ -50,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setToken(null);
         setUser(null);
+        setOrganizations([]);
         setActiveOrganizationId(null);
       }
       setLoading(false);
@@ -63,8 +67,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
+  const activeOrganization = organizations.find((o) => o.id === activeOrganizationId) || null;
+
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, token, activeOrganizationId, setActiveOrganizationId, logout }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, token, organizations, activeOrganization, setActiveOrganizationId, logout }}>
       {children}
     </AuthContext.Provider>
   );
