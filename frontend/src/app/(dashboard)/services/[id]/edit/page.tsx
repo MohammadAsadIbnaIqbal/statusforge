@@ -8,20 +8,21 @@ import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { apiFetch } from "@/lib/api";
+import { useApi } from "@/lib/useApi";
 
 export default function EditServicePage() {
+  const { fetchApi } = useApi();
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
-  
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     display_order: 0,
     is_visible: true,
   });
-  
+
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -30,8 +31,7 @@ export default function EditServicePage() {
     let mounted = true;
     const fetchService = async () => {
       try {
-        const token = localStorage.getItem("access_token") || undefined;
-        const data = await apiFetch(`/services/${id}`, {}, token);
+        const data = await fetchApi(`/services/${id}`, {});
         if (mounted) {
           setFormData({
             name: data.name,
@@ -50,7 +50,7 @@ export default function EditServicePage() {
     };
     fetchService();
     return () => { mounted = false; };
-  }, [id]);
+  }, [id, fetchApi]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,12 +58,8 @@ export default function EditServicePage() {
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem("access_token") || undefined;
-      await apiFetch(`/services/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(formData),
-      }, token);
-      
+      await fetchApi(`/services/${id}`, { method: "PATCH", body: JSON.stringify(formData) });
+
       router.push("/services");
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -103,7 +99,7 @@ export default function EditServicePage() {
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && <Alert variant="destructive">{error}</Alert>}
-            
+
             <div className="space-y-4">
               <Input
                 id="name"
@@ -114,7 +110,7 @@ export default function EditServicePage() {
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 maxLength={100}
               />
-              
+
               <div className="flex flex-col space-y-1.5 w-full">
                 <label htmlFor="description" className="text-sm font-medium leading-none text-gray-700">
                   Description (Optional)

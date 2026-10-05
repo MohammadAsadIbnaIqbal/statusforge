@@ -28,7 +28,6 @@ jobs:
 
       - name: Run Pytest
         env:
-          SECRET_KEY: "ci_pipeline_dummy_secret_key_for_testing_only"
           DATABASE_URL: "sqlite+aiosqlite:///:memory:"
           NOTIFICATION_MODE: "log"
         run: |

@@ -1,17 +1,19 @@
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useCallback } from 'react';
-import { apiFetch } from './api';
+import { useApi } from './useApi';
 import { Service, Incident, Subscriber, PaginatedResponse } from '@/types/api';
 
 export function useServices() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { fetchApi } = useApi();
 
   const fetchServices = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token') || undefined;
-      const data = await apiFetch('/services', {}, token);
+      const data = await fetchApi('/services');
       setServices(data);
       setError(null);
     } catch (err: unknown) {
@@ -20,11 +22,10 @@ export function useServices() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchApi]);
 
   useEffect(() => {
-    const timer = setTimeout(() => fetchServices(), 0);
-    return () => clearTimeout(timer);
+    fetchServices();
   }, [fetchServices]);
 
   return { services, loading, error, refetch: fetchServices };
@@ -34,14 +35,14 @@ export function useIncidents(statusFilter?: string) {
   const [incidents, setIncidents] = useState<PaginatedResponse<Incident> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { fetchApi } = useApi();
 
   const fetchIncidents = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token') || undefined;
       let url = '/incidents?limit=100';
-      if (statusFilter) url += `&status=${statusFilter}`;
-      const data = await apiFetch(url, {}, token);
+      if (statusFilter) url += "&status=" + statusFilter;
+      const data = await fetchApi(url);
       setIncidents(data);
       setError(null);
     } catch (err: unknown) {
@@ -50,11 +51,10 @@ export function useIncidents(statusFilter?: string) {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, fetchApi]);
 
   useEffect(() => {
-    const timer = setTimeout(() => fetchIncidents(), 0);
-    return () => clearTimeout(timer);
+    fetchIncidents();
   }, [fetchIncidents]);
 
   return { incidents, loading, error, refetch: fetchIncidents };
@@ -64,12 +64,12 @@ export function useSubscribers() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { fetchApi } = useApi();
 
   const fetchSubscribers = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token') || undefined;
-      const data = await apiFetch('/subscribers', {}, token);
+      const data = await fetchApi('/subscribers');
       setSubscribers(data);
       setError(null);
     } catch (err: unknown) {
@@ -78,11 +78,10 @@ export function useSubscribers() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchApi]);
 
   useEffect(() => {
-    const timer = setTimeout(() => fetchSubscribers(), 0);
-    return () => clearTimeout(timer);
+    fetchSubscribers();
   }, [fetchSubscribers]);
 
   return { subscribers, loading, error, refetch: fetchSubscribers };

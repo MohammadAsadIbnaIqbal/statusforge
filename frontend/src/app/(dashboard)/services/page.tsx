@@ -11,7 +11,7 @@ import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useServices } from "@/lib/hooks";
-import { apiFetch } from "@/lib/api";
+import { useApi } from "@/lib/useApi";
 
 const statusColors: Record<string, 'default' | 'success' | 'warning' | 'destructive'> = {
   OPERATIONAL: 'success',
@@ -22,18 +22,18 @@ const statusColors: Record<string, 'default' | 'success' | 'warning' | 'destruct
 };
 
 export default function ServicesPage() {
+  const { fetchApi } = useApi();
   const { services, loading, error, refetch } = useServices();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this service?")) return;
-    
+
     setIsDeleting(id);
     setDeleteError(null);
     try {
-      const token = localStorage.getItem('access_token') || undefined;
-      await apiFetch(`/services/${id}`, { method: 'DELETE' }, token);
+            await fetchApi(`/services/${id}`, { method: 'DELETE' });
       await refetch();
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -129,9 +129,9 @@ export default function ServicesPage() {
                           <Pencil className="h-4 w-4 text-gray-500" />
                         </Button>
                       </Link>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         aria-label="Delete"
                         onClick={() => handleDelete(service.id)}
                         isLoading={isDeleting === service.id}
@@ -151,6 +151,3 @@ export default function ServicesPage() {
     </div>
   );
 }
-
-
-

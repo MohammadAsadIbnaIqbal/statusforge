@@ -1,11 +1,25 @@
 export interface User {
   id: number;
   email: string;
-  username: string;
-  organization_name: string;
-  organization_slug: string;
+  display_name: string | null;
+  photo_url: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Organization {
+  id: number;
+  name: string;
+  slug: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Membership {
+  user_id: number;
+  organization_id: number;
+  role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
+  created_at: string;
 }
 
 export interface Service {
@@ -59,32 +73,9 @@ export interface ApiError {
 }
 
 export interface PublicStatusResponse {
-  organization: {
-    name: string;
-    slug: string;
-  };
-  overall_status: 'OPERATIONAL' | 'DEGRADED_PERFORMANCE' | 'PARTIAL_OUTAGE' | 'MAJOR_OUTAGE' | 'UNDER_MAINTENANCE';
-  services: {
-    id: number;
-    name: string;
-    status: 'OPERATIONAL' | 'DEGRADED_PERFORMANCE' | 'PARTIAL_OUTAGE' | 'MAJOR_OUTAGE' | 'UNDER_MAINTENANCE';
-    description: string;
-  }[];
-  active_incidents: PublicIncident[];
-  recent_incidents: PublicIncident[];
-}
-
-export interface PublicIncident {
-  id: number;
-  title: string;
-  impact: 'NONE' | 'MINOR' | 'MAJOR' | 'CRITICAL';
-  status: 'INVESTIGATING' | 'IDENTIFIED' | 'MONITORING' | 'RESOLVED';
-  created_at: string;
-  resolved_at: string | null;
-  services: { id: number; name: string }[];
-  updates: {
-    status: 'INVESTIGATING' | 'IDENTIFIED' | 'MONITORING' | 'RESOLVED';
-    message: string;
-    created_at: string;
-  }[];
+  organization: { name: string; slug: string };
+  overall_status: string;
+  services: { id: number; name: string; status: string; description: string }[];
+  active_incidents: Incident[];
+  recent_incidents: Incident[];
 }

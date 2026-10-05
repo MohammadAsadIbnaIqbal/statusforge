@@ -6,6 +6,7 @@ from enum import Enum
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
+    from app.models.organization import Organization
     from app.models.user import User
     from app.models.service import Service
 
@@ -53,12 +54,14 @@ class Incident(IncidentBase, table=True):
     )
     
     id: int | None = Field(default=None, primary_key=True)
-    owner_id: int = Field(foreign_key="user.id", index=True)
+    organization_id: int = Field(foreign_key="organization.id", index=True)
+    created_by_user_id: int | None = Field(foreign_key="user.id", default=None)
+    
     created_at: datetime = Field(sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(timezone.utc))
     resolved_at: datetime | None = Field(sa_type=DateTime(timezone=True), default=None)
 
-    owner: "User" = Relationship(back_populates="incidents")
+    organization: "Organization" = Relationship(back_populates="incidents")
     service_links: list["IncidentServiceLink"] = Relationship(back_populates="incident", cascade_delete=True)
     updates: list["IncidentUpdate"] = Relationship(back_populates="incident", cascade_delete=True)
 
@@ -79,6 +82,8 @@ class IncidentUpdate(IncidentUpdateBase, table=True):
     
     id: int | None = Field(default=None, primary_key=True)
     incident_id: int = Field(foreign_key="incident.id", index=True)
+    created_by_user_id: int | None = Field(foreign_key="user.id", default=None)
+    
     created_at: datetime = Field(sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(timezone.utc))
 
     incident: Incident = Relationship(back_populates="updates")
@@ -94,6 +99,8 @@ from app.models.service import ServiceResponse
 
 class IncidentResponse(IncidentBase):
     id: int
+    organization_id: int
+    created_by_user_id: int | None
     created_at: datetime
     updated_at: datetime
     resolved_at: datetime | None

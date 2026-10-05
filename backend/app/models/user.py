@@ -4,41 +4,27 @@ from sqlalchemy import DateTime
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
-    from app.models.service import Service
-    from app.models.incident import Incident
-    from app.models.subscriber import Subscriber
+    from app.models.membership import Membership
+    from app.models.organization import Organization
 
 class UserBase(SQLModel):
-    username: str = Field(index=True, unique=True, max_length=30)
     email: str = Field(index=True, unique=True, max_length=255)
-    organization_name: str = Field(max_length=100)
+    display_name: str | None = Field(default=None, max_length=100)
+    photo_url: str | None = Field(default=None, max_length=500)
+    email_verified: bool = Field(default=False)
 
 class User(UserBase, table=True):
     __tablename__: str = "user"
 
     id: int | None = Field(default=None, primary_key=True)
-    organization_slug: str = Field(max_length=100, index=True, unique=True)
-    hashed_password: str = Field(max_length=255)
+    firebase_uid: str = Field(max_length=128, index=True, unique=True)
+    
     created_at: datetime = Field(sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(sa_type=DateTime(timezone=True), default_factory=lambda: datetime.now(timezone.utc))
 
-    services: list["Service"] = Relationship(back_populates="owner", cascade_delete=True)
-    incidents: list["Incident"] = Relationship(back_populates="owner", cascade_delete=True)
-    subscribers: list["Subscriber"] = Relationship(back_populates="owner", cascade_delete=True)
-
-class UserCreate(UserBase):
-    password: str
+    memberships: list["Membership"] = Relationship(back_populates="user", cascade_delete=True)
 
 class UserResponse(UserBase):
     id: int
-    organization_slug: str
     created_at: datetime
     updated_at: datetime
-
-class Token(SQLModel):
-    access_token: str
-    token_type: str = "bearer"
-
-class UserRegistrationResponse(UserResponse):
-    access_token: str
-    token_type: str = "bearer"

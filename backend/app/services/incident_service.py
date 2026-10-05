@@ -1,33 +1,36 @@
 import sqlalchemy as sa
 from datetime import datetime, timezone
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import select
+from sqlmodel import select, col
 from fastapi import HTTPException, status
+from typing import Any
+
 from app.models.incident import (
     Incident, IncidentCreate, IncidentUpdateCreate,
     IncidentServiceLink, IncidentUpdate, IncidentStatus
 )
 from app.models.service import Service
+from app.models.organization import Organization
 from app.models.user import User
 from app.services.status_service import recompute_service_status
 from app.worker import get_redis_settings
 from arq import create_pool
 
-async def create_incident(session: AsyncSession, user: User, incident_in: IncidentCreate) -> Incident:
+async def create_incident(session: AsyncSession, organization: Organization, user: User, incident_in: IncidentCreate) -> Incident:
     if not incident_in.service_ids:
         raise HTTPException(status_code=422, detail="At least one service must be affected.")
         
-    # Validate ownership of all affected services
     for sid in incident_in.service_ids:
-        service = (await session.exec(select(Service).where(Service.id == sid, Service.owner_id == user.id))).first()
+        service = (await session.exec(select(Service).where(Service.id == sid, Service.organization_id == organization.id))).first()
         if not service:
-            raise HTTPException(status_code=403, detail=f"Service ID {sid} does not exist or does not belong to you.")
+            raise HTTPException(status_code=403, detail=f"Service ID {sid} does not exist or does not belong to this organization.")
             
     new_incident = Incident(
         title=incident_in.title,
         status=incident_in.status,
         impact=incident_in.impact,
-        owner_id=user.id
+        organization_id=organization.id,
+        created_by_user_id=user.id
     )
     session.add(new_incident)
     await session.flush()
@@ -39,7 +42,8 @@ async def create_incident(session: AsyncSession, user: User, incident_in: Incide
     initial_update = IncidentUpdate(
         incident_id=new_incident.id,
         status=new_incident.status,
-        message=incident_in.message
+        message=incident_in.message,
+        created_by_user_id=user.id
     )
     session.add(initial_update)
     
@@ -49,18 +53,17 @@ async def create_incident(session: AsyncSession, user: User, incident_in: Incide
     await session.commit()
     await session.refresh(new_incident)
 
-    # Cache invalidation and notifications
     try:
         redis = await create_pool(get_redis_settings(fast_fail=True))
-        await redis.enqueue_job("invalidate_cache", f"statusforge:status:{user.organization_slug}")
+        await redis.enqueue_job("invalidate_cache", f"statusforge:status:{organization.slug}")
         await redis.enqueue_job("notify_subscribers", incident_id=new_incident.id)
     except Exception:
-        pass # Background hook failure shouldn't fail the request
+        pass 
 
     return new_incident
 
-async def update_incident(session: AsyncSession, user: User, incident_id: int, update_in: IncidentUpdateCreate) -> Incident:
-    stmt = select(Incident).where(Incident.id == incident_id, Incident.owner_id == user.id).with_for_update()
+async def update_incident(session: AsyncSession, organization: Organization, user: User, incident_id: int, update_in: IncidentUpdateCreate) -> Incident:
+    stmt = select(Incident).where(Incident.id == incident_id, Incident.organization_id == organization.id).with_for_update()
     incident = (await session.exec(stmt)).first()
     
     if not incident:
@@ -72,7 +75,8 @@ async def update_incident(session: AsyncSession, user: User, incident_id: int, u
     new_update = IncidentUpdate(
         incident_id=incident.id,
         status=update_in.status,
-        message=update_in.message
+        message=update_in.message,
+        created_by_user_id=user.id
     )
     session.add(new_update)
     
@@ -91,35 +95,27 @@ async def update_incident(session: AsyncSession, user: User, incident_id: int, u
     await session.commit()
     await session.refresh(incident)
 
-    # Cache invalidation and notifications
     try:
         redis = await create_pool(get_redis_settings(fast_fail=True))
-        await redis.enqueue_job("invalidate_cache", f"statusforge:status:{user.organization_slug}")
+        await redis.enqueue_job("invalidate_cache", f"statusforge:status:{organization.slug}")
         await redis.enqueue_job("notify_subscribers", incident_id=incident.id)
     except Exception:
         pass
 
     return incident
 
-from sqlmodel import col
-from typing import Any
-
 async def get_incidents(
     session: AsyncSession, 
-    user: User, 
+    organization: Organization, 
     limit: int = 100, 
     offset: int = 0, 
     status_filter: str | None = None
 ) -> dict[str, Any]:
-    stmt = select(Incident).where(Incident.owner_id == user.id)
+    stmt = select(Incident).where(Incident.organization_id == organization.id)
     
     if status_filter:
         stmt = stmt.where(Incident.status == status_filter)
         
-    # Sort active first, then resolved, then by created_at desc
-    # In SQLite/Postgres we can order by status != 'RESOLVED' DESC (or similar),
-    # but let's just fetch and sort in memory if it's complex, or sort by resolved_at NULLS FIRST
-    # Actually, a simple way:
     stmt = stmt.order_by(
         col(Incident.resolved_at).is_(None).desc(),
         col(Incident.created_at).desc()
@@ -133,12 +129,10 @@ async def get_incidents(
     
     items = []
     for inc in incidents:
-        # fetch links
         links = (await session.exec(select(IncidentServiceLink).where(IncidentServiceLink.incident_id == inc.id))).all()
         s_ids = [l.service_id for l in links]
         services = (await session.exec(select(Service).where(Service.id.in_(s_ids)))).all() if s_ids else []
         
-        # fetch updates
         updates = (await session.exec(select(IncidentUpdate).where(IncidentUpdate.incident_id == inc.id).order_by(col(IncidentUpdate.created_at).desc()))).all()
         
         items.append({
@@ -154,8 +148,8 @@ async def get_incidents(
         "offset": offset
     }
 
-async def get_incident(session: AsyncSession, user: User, incident_id: int) -> dict[str, Any]:
-    inc = (await session.exec(select(Incident).where(Incident.id == incident_id, Incident.owner_id == user.id))).first()
+async def get_incident(session: AsyncSession, organization: Organization, incident_id: int) -> dict[str, Any]:
+    inc = (await session.exec(select(Incident).where(Incident.id == incident_id, Incident.organization_id == organization.id))).first()
     if not inc:
         raise HTTPException(status_code=404, detail="Incident not found")
         
@@ -170,4 +164,3 @@ async def get_incident(session: AsyncSession, user: User, incident_id: int) -> d
         "services": services,
         "updates": updates
     }
-

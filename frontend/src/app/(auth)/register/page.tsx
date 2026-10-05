@@ -1,133 +1,174 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Activity } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Card, CardContent } from "@/components/ui/Card";
+import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { Alert } from "@/components/ui/Alert";
-import { useAuth } from "@/lib/auth";
+import { getNextFromLocation } from "@/lib/redirect";
 import { apiFetch } from "@/lib/api";
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    organization_name: "",
-  });
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [orgName, setOrgName] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, [e.target.id]: e.target.value }));
-  };
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setIsLoading(true);
+    setLoading(true);
 
     try {
-      const data = await apiFetch("/register", {
-        method: "POST",
-        body: JSON.stringify(formData),
-      });
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(userCredential.user, { displayName: name });
+      const idToken = await userCredential.user.getIdToken();
 
-      // The backend returns access_token directly on successful registration
-      if (data.access_token) {
-        login(data.access_token);
-      }
+      // Bootstrap backend
+      await apiFetch("/auth/bootstrap", {
+        method: "POST",
+        body: JSON.stringify({ organization_name: orgName })
+      }, idToken);
+
+      router.push(getNextFromLocation());
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const errorObj = err as any;
-        if (Array.isArray(errorObj.detail)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setError(errorObj.detail.map((d: any) => d.msg).join(", "));
-        } else {
-          setError(err.message || "Registration failed. Please check your inputs.");
-        }
-      } else {
-        setError("Registration failed. Please check your inputs.");
-      }
-      setIsLoading(false);
+      setError((err as Error).message || "Failed to register");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    setError("");
+    setLoading(true);
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+
+      // Bootstrap backend
+      await apiFetch("/auth/bootstrap", {
+        method: "POST",
+        body: JSON.stringify({ organization_name: orgName || undefined })
+      }, idToken);
+
+      router.push(getNextFromLocation());
+    } catch (err: unknown) {
+      setError((err as Error).message || "Google Sign-Up failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
-      <div className="w-full max-w-[400px] space-y-6">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-gray-900 text-white shadow-sm">
-            <Activity className="h-7 w-7" />
-          </div>
-          <div className="text-center">
-            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Create your account</h1>
-            <p className="mt-1.5 text-sm text-gray-500">
-              Already have an account?{" "}
-              <Link href="/login" className="font-medium text-gray-900 hover:underline hover:underline-offset-4">
-                Sign in
-              </Link>
-            </p>
-          </div>
+    <div className="flex min-h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow-sm border border-gray-100">
+        <div>
+          <h2 className="mt-2 text-center text-3xl font-bold tracking-tight text-gray-900">
+            Create your account
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Start building your status pages today
+          </p>
         </div>
 
-        <Card className="shadow-sm border-gray-200">
-          <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && <Alert variant="destructive">{error}</Alert>}
-              
-              <div className="space-y-4">
-                <Input
-                  id="organization_name"
-                  label="Organization Name"
-                  type="text"
-                  required
-                  value={formData.organization_name}
-                  onChange={handleChange}
-                  placeholder="e.g. Acme Corp"
-                />
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && <Alert variant="destructive">{error}</Alert>}
 
-                <Input
-                  id="username"
-                  label="Username"
-                  type="text"
-                  required
-                  value={formData.username}
-                  onChange={handleChange}
-                  placeholder="e.g. acme-admin"
-                />
-                
-                <Input
-                  id="email"
-                  label="Email address"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="admin@example.com"
-                />
+          <div className="space-y-4">
+            <Input
+              label="Full Name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+            <Input
+              label="Email address"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <Input
+              label="Organization Name"
+              type="text"
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              required
+            />
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
 
-                <Input
-                  id="password"
-                  label="Password"
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  minLength={8}
-                />
-              </div>
+          <div>
+            <Button
+              type="submit"
+              className="w-full"
+              isLoading={loading}
+              disabled={loading}
+            >
+              Sign up
+            </Button>
+          </div>
 
-              <Button type="submit" className="w-full" isLoading={isLoading}>
-                Create Account
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-2 text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2"
+              onClick={handleGoogleSignUp}
+              disabled={loading}
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24">
+                <path
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  fill="#4285F4"
+                />
+                <path
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  fill="#34A853"
+                />
+                <path
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  fill="#EA4335"
+                />
+              </svg>
+              Google
+            </Button>
+          </div>
+
+          <div className="text-sm text-center mt-6">
+            <span className="text-gray-600">Already have an account? </span>
+            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+              Sign in
+            </Link>
+          </div>
+        </form>
       </div>
     </div>
   );

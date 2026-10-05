@@ -8,19 +8,20 @@ import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
 import { useServices } from "@/lib/hooks";
-import { apiFetch } from "@/lib/api";
+import { useApi } from "@/lib/useApi";
 
 export default function NewIncidentPage() {
+  const { fetchApi } = useApi();
   const router = useRouter();
   const { services } = useServices();
-  
+
   const [formData, setFormData] = useState({
     title: "",
     impact: "MINOR",
     message: "",
     service_ids: [] as number[],
   });
-  
+
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,17 +40,16 @@ export default function NewIncidentPage() {
       setError("Please select at least one affected service.");
       return;
     }
-    
+
     setError("");
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem("access_token") || undefined;
-      await apiFetch("/incidents", {
+      await fetchApi("/incidents", {
         method: "POST",
         body: JSON.stringify(formData),
-      }, token);
-      
+      });
+
       router.push("/incidents");
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -81,7 +81,7 @@ export default function NewIncidentPage() {
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && <Alert variant="destructive">{error}</Alert>}
-            
+
             <div className="space-y-4">
               <Input
                 id="title"
@@ -110,7 +110,7 @@ export default function NewIncidentPage() {
                   <option value="CRITICAL">Critical</option>
                 </select>
               </div>
-              
+
               <div className="flex flex-col space-y-2 pt-2">
                 <label className="text-sm font-medium leading-none text-gray-700">
                   Affected Services

@@ -12,7 +12,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export async function apiFetch(
   endpoint: string,
   options: RequestInit = {},
-  token?: string
+  token?: string,
+  organizationId?: number | null
 ) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -21,6 +22,10 @@ export async function apiFetch(
 
   if (token) {
     headers["Authorization"] = 'Bearer ' + token;
+  }
+  
+  if (organizationId) {
+    headers["x-organization-id"] = organizationId.toString();
   }
 
   const response = await fetch(API_BASE_URL + endpoint, {
